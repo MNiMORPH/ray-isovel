@@ -72,9 +72,12 @@ K = rho * dist * dudz
 f = g*S/K
 f = dist
 
+"""
 ###############
 # ACTIVE WORK #
 ###############
+
+# SUCCESSFUL TEST. NOW COMMENTING AND RETURNING TO RAY-ISOVEL PROGRESS
 
 # Let's now modify "dist" to match something arbitrary.
 # The next step after this is starting with something directly taken
@@ -119,6 +122,7 @@ u_plotter.show()
 
 ###############
 ###############
+"""
 
 # VARIATIONAL PROBLEM
 a = ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx
@@ -153,10 +157,20 @@ u_plotter.view_xy()
 
 # Let's put it on a regular grid
 # Huh, I'm just redoing what I did below
+"""
+# Grid from PyVista
 xyz = np.hstack( [u_geometry[:,:2], np.array([uh.x.array]).transpose()] )
 _y = xyz[:,0]
 _z = xyz[:,1]
 _u = xyz[:,2]
+"""
+# Grid directly from FEniCSx
+# Values will be exact and should not require interpolation
+# Though I keep it here for the more general case of a non-rectangular geometry
+coords = V.tabulate_dof_coordinates()
+_y = coords[:,0]
+_z = coords[:,1]
+_u = uh.x.array
 yreg = np.linspace(ymin, ymax, ymax*20*2+1)
 zreg = np.linspace(zmin, zmax, zmax*10*2+1)
 YREG, ZREG = np.meshgrid(yreg, zreg)
