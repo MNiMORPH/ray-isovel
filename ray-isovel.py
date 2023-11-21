@@ -111,9 +111,7 @@ _u = xyz[:,2]
 yreg = np.linspace(ymin, ymax, ymax*20*2+1)
 zreg = np.linspace(zmin, zmax, zmax*10*2+1)
 YREG, ZREG = np.meshgrid(yreg, zreg)
-from scipy.interpolate import interp2d, interpn, griddata
-# interpfunc...  scipy
-#u2 = interpfunc(yreg, zreg)
+
 ureg = griddata( np.array([_y, _z]).transpose(), _u,
                  np.array([YREG.ravel(), ZREG.ravel()]).transpose() )
 urast = ureg.reshape( (len(zreg), len(yreg)) )
