@@ -18,7 +18,7 @@ ymin = -4
 ymax = -ymin
 zmin = 0
 zmax = 1
-domain = mesh.create_rectangle(MPI.COMM_WORLD, np.array([[ymin, zmin], [ymax, zmax]]), n=[ymax*20+1, zmax*10+1], cell_type=mesh.CellType.quadrilateral)
+domain = mesh.create_rectangle(MPI.COMM_WORLD, np.array([[ymin, zmin], [ymax, zmax]]), n=[ymax*40, zmax*20], cell_type=mesh.CellType.quadrilateral)
 
 # TRIAL AND TEST FUNCTIONS
 V = fem.functionspace(domain, ("Lagrange", 1))
@@ -206,6 +206,7 @@ for _sl in sl:
 
 # Isovels too
 
+"""
 # Rescale
 # use ymin, ymax, xmin, xmax, defined in other script
 #fig, ax = plt.subplots()
@@ -216,6 +217,31 @@ for _level in np.linspace( np.min(urast) + _ep, np.max(urast) - _ep, 10 ):
     for __contour in _contours_local:
         __contour[:,0] = __contour[:,0]/urast.shape[0] * (zmax-zmin) + zmin
         __contour[:,1] = __contour[:,1]/urast.shape[1] * (ymax-ymin) + ymin
+    # Plot all contours found
+    contours.append(_contours_local)
+    for contour in contours[-1]:
+        plt.plot(contour[:, 1], contour[:, 0], linewidth=2, color='.7')
+"""
+
+# Use extended urast so contours don't end before velocity raster's end
+_ep = 2E-2 # small but not miniscule value
+# NOTE: SHOULD SET UP 0s ALONG NO SLIP MARGINS, FOR INTERPOLATION
+contours = []
+# Rescaling
+dy_rast = 2*ymax/urast.shape[1]
+ymin_ext = ymin - dy_rast
+ymax_ext = ymax + dy_rast
+dz_rast = zmax/urast.shape[0]
+zmin_ext = zmin - dz_rast
+zmax_ext = zmax + dz_rast
+for _level in np.linspace( np.min(urast_ext) \
+                            + _ep, np.max(urast_ext) - _ep, 10 ):
+    _contours_local = (measure.find_contours(urast_ext, level=_level))
+    for __contour in _contours_local:
+        __contour[:,0] = __contour[:,0]/urast_ext.shape[0] * \
+                                              (zmax_ext-zmin_ext) + zmin_ext
+        __contour[:,1] = __contour[:,1]/urast_ext.shape[1] * \
+                                              (ymax_ext-ymin_ext) + ymin_ext
     # Plot all contours found
     contours.append(_contours_local)
     for contour in contours[-1]:
