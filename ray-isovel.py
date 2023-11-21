@@ -5,7 +5,6 @@ from dolfinx import mesh, fem, plot
 from dolfinx.fem import petsc
 import numpy as np
 import ufl
-import pyvista
 from skimage import measure
 
 from matplotlib import pyplot as plt
@@ -103,6 +102,7 @@ print( u2.vector.getArray()[:5] )
 u2.vector.setArray(coords[:,0] + coords[:,1])
 
 # And see what it looks like
+import pyvista
 topology, cell_types, geometry = plot.vtk_mesh(domain, tdim)
 grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
 
@@ -138,32 +138,6 @@ problem = petsc.LinearProblem(a, L, bcs=[bc],
                         petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 uh = problem.solve()
 
-
-# Plotting
-
-#pyvista.start_xvfb()
-topology, cell_types, geometry = plot.vtk_mesh(domain, tdim)
-grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
-
-u_topology, u_cell_types, u_geometry = plot.vtk_mesh(V)
-
-u_grid = pyvista.UnstructuredGrid(u_topology, u_cell_types, u_geometry)
-u_grid.point_data["u"] = uh.x.array.real
-u_grid.set_active_scalars("u")
-u_plotter = pyvista.Plotter()
-u_plotter.add_mesh(u_grid, show_edges=True)
-u_plotter.view_xy()
-
-
-# Let's put it on a regular grid
-# Huh, I'm just redoing what I did below
-"""
-# Grid from PyVista
-xyz = np.hstack( [u_geometry[:,:2], np.array([uh.x.array]).transpose()] )
-_y = xyz[:,0]
-_z = xyz[:,1]
-_u = xyz[:,2]
-"""
 # Grid directly from FEniCSx
 # Values will be exact and should not require interpolation
 # Though I keep it here for the more general case of a non-rectangular geometry
