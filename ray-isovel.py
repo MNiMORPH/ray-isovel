@@ -62,14 +62,63 @@ boundary_facets = mesh.exterior_facet_indices(domain.topology)
 # Actually, now with rectangle centered in the middle, yes
 g = 9.8
 S = 1E-2
+# Distance from wall as initial guess for the ray-based eddy-size (I think) term
 dist_y = ymax - np.abs(x[0])
-dist_z = x[1] 
+dist_z = x[1]
 dist = (dist_y**2 + dist_z**2)**.5
 rho = 1000. # water density
 dudz = 0.01 # Approx as constant for now <-- THIS PART REQUIRES ITERATION !!!!
 K = rho * dist * dudz
 f = g*S/K
 f = dist
+
+###############
+# ACTIVE WORK #
+###############
+
+# Let's now modify "dist" to match something arbitrary.
+# The next step after this is starting with something directly taken
+# from an array space and not precalculated
+
+# Coordinates in space
+coords = V.tabulate_dof_coordinates()
+u2 = fem.Function(V)
+
+# This sets a value in the array
+arr = u2.vector.getArray()
+arr[0] = 1 # tag
+u2.vector.setArray(arr)
+print( u2.vector.getArray()[:5] )
+
+# Now, I have to learn what value corresponds to which coordinate
+# I think that the values are in the "dof" index order
+# But since I have "tabulate dof coordinates", perhaps this order is the same
+
+# IT WORKED! #
+# Coordinates are in dof-index order :D 
+# Let's test it like this:
+u2.vector.setArray(coords[:,0] + coords[:,1])
+
+# And see what it looks like
+topology, cell_types, geometry = plot.vtk_mesh(domain, tdim)
+grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
+
+u_topology, u_cell_types, u_geometry = plot.vtk_mesh(V)
+u_grid = pyvista.UnstructuredGrid(u_topology, u_cell_types, u_geometry)
+u_grid.point_data["u"] = u2.x.array.real
+u_grid.set_active_scalars("u")
+u_plotter = pyvista.Plotter()
+u_plotter.add_mesh(u_grid, show_edges=True)
+u_plotter.view_xy()
+u_plotter.show()
+############
+
+# Also look into
+#u2.vector.setValue() and family
+
+
+###############
+###############
 
 # VARIATIONAL PROBLEM
 a = ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx
