@@ -154,6 +154,7 @@ ureg = griddata( np.array([_y, _z]).transpose(), _u,
 urast = ureg.reshape( (len(zreg), len(yreg)) )
 
 
+"""
 ############################
 # From "Downslope"
 
@@ -166,6 +167,24 @@ dudy = np.diff( (urast[:-1,:] + urast[1:,:]) / 2., axis=1)
 ymid = (yreg[:-1] + yreg[1:])/2.
 zmid = (zreg[:-1] + zreg[1:])/2.
 umid = (urast[:-1,:-1] + urast[1:,1:])/2.
+"""
+
+# Extend the velocity raster so the rays go farther and cross the isovels
+# Just assume same values extend 1 cell beyond bounds -- straight on boundaries
+# Should be 0s at walls, same as others at surface
+# And it seems to be at 0 or very very very close, so just to make it exactly 0
+# I force the issue (seems to reach 0 at banks but not bed in the test case)
+# "1*" to indicate top boundary (open channel)
+urast_ext = np.vstack( [0*urast[0,:], urast, 1*urast[-1,:]] )
+urast_ext = np.column_stack( [0*urast_ext[:,0], urast_ext, 0*urast_ext[:,-1]] )
+
+dudz = np.diff( (urast_ext[:,:-1] + urast_ext[:,1:]) / 2., axis=0)
+dudy = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
+
+ymid = (yreg[:-1] + yreg[1:])/2.
+zmid = (zreg[:-1] + zreg[1:])/2.
+umid = (urast_ext[:-1,:-1] + urast_ext[1:,1:])/2.
+
 
 plt.figure( figsize=(16,2.5))
 # Extents from other code
