@@ -108,8 +108,8 @@ xyz = np.hstack( [u_geometry[:,:2], np.array([uh.x.array]).transpose()] )
 _y = xyz[:,0]
 _z = xyz[:,1]
 _u = xyz[:,2]
-yreg = np.linspace(ymin, ymax, 161)
-zreg = np.linspace(zmin, zmax, 21)
+yreg = np.linspace(ymin, ymax, ymax*20*2+1)
+zreg = np.linspace(zmin, zmax, zmax*10*2+1)
 YREG, ZREG = np.meshgrid(yreg, zreg)
 from scipy.interpolate import interp2d, interpn, griddata
 # interpfunc...  scipy
