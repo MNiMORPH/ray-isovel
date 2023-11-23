@@ -163,6 +163,17 @@ ureg = griddata( np.array([_y, _z]).transpose(), _u,
 urast = ureg.reshape( (len(zreg), len(yreg)) )
 
 
+# Extended -- to fit extended diffs
+dy = 1/ny2_reg_per_meter
+dy2 = dy/2
+dz = 1/nz_reg_per_meter
+dz2 = dz/2
+
+yreg_ext = np.linspace(ymin-dy2, ymax+dy2, ymax*ny2_reg_per_meter*2+2)
+zreg_ext = np.linspace(zmin-dz2, zmax+dz2, zmax*nz_reg_per_meter+2)
+YREG_ext, ZREG_ext = np.meshgrid(yreg_ext, zreg_ext)
+
+
 """
 ############################
 # From "Downslope"
@@ -187,22 +198,22 @@ umid = (urast[:-1,:-1] + urast[1:,1:])/2.
 urast_ext = np.vstack( [0*urast[0,:], urast, 1*urast[-1,:]] )
 urast_ext = np.column_stack( [0*urast_ext[:,0], urast_ext, 0*urast_ext[:,-1]] )
 
-dudz = np.diff( (urast_ext[:,:-1] + urast_ext[:,1:]) / 2., axis=0)
-dudy = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
+dudz_ext = np.diff( (urast_ext[:,:-1] + urast_ext[:,1:]) / 2., axis=0)
+dudy_ext = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
 
-yreg_ext = np.linspace(ymin, ymax, ymax*20*2+1)
-zreg_ext = np.linspace(zmin, zmax, zmax*10*2+1)
-
-ymid = (yreg[:-1] + yreg[1:])/2.
-zmid = (zreg[:-1] + zreg[1:])/2.
-umid = (urast_ext[:-1,:-1] + urast_ext[1:,1:])/2.
+# Not extended, for plotting
+#ymid = (yreg_ext[:-1] + yreg_ext[1:])/2.
+#zmid = (zreg[:-1] + zreg_ext[1:])/2.
+#umid = (urast_ext[:-1,:-1] + urast_ext[1:,1:])/2.
 
 
-plt.figure( figsize=(16,2.5))
+plt.figure( figsize=(16,2.5) )
 # Extents from other code
-plt.imshow(umid, extent=(ymin, ymax, zmax, zmin))
+plt.imshow(urast, extent=(ymin-dy2, ymax+dy2, zmax+dz2, zmin-dz2))
 plt.colorbar( label = 'Flow velocity [m s$^{-1}$]')
 plt.ylim(plt.ylim()[::-1])
+plt.xlim((ymin,ymax))
+plt.ylim((zmin,zmax))
 #sp = plt.streamplot( ymid, zmid, dudy, dudz, density=1, broken_streamlines=False,
 #                     color='white' )
 #plt.tight_layout()
@@ -212,7 +223,7 @@ plt.ylim(plt.ylim()[::-1])
 # Hm, can't use the given lines too well
 
 from streamlines import streamplot2
-sl = streamplot2( ymid, zmid, dudy, dudz, density=.7, broken_streamlines=False)
+sl = streamplot2( yreg_ext, zreg_ext, dudy_ext, dudz_ext, density=.7, broken_streamlines=False)
 for _sl in sl:
     plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1')
 
