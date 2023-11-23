@@ -224,8 +224,23 @@ plt.ylim((zmin,zmax))
 
 from streamlines import streamplot2
 sl = streamplot2( yreg_ext, zreg_ext, dudy_ext, dudz_ext, density=.7, broken_streamlines=False)
-for _sl in sl:
+
+# Arrays are (y,z) and at wall
+# So I could trace along outer wall.
+# But they should all reach the top free surface in order -- easier!
+sl = sorted(sl, key=lambda _sl: _sl[-1,0])
+
+# Hm, doesn't quite seem to work. Maybe they are just too close and precision becomes an issue.
+# Go around boundary
+# Yes, this works.
+sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
+
+# Plot
+for _sl in sl[:20]:
     plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1')
+
+# Organize streamlines from left to right
+
 
 # Isovels too
 
