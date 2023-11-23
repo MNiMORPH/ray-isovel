@@ -18,7 +18,11 @@ ymin = -4
 ymax = -ymin
 zmin = 0
 zmax = 1
-domain = mesh.create_rectangle(MPI.COMM_WORLD, np.array([[ymin, zmin], [ymax, zmax]]), n=[ymax*40, zmax*20], cell_type=mesh.CellType.quadrilateral)
+
+ny2 = 40
+nz = 20
+
+domain = mesh.create_rectangle(MPI.COMM_WORLD, np.array([[ymin, zmin], [ymax, zmax]]), n=[ymax*ny2, zmax*nz], cell_type=mesh.CellType.quadrilateral)
 
 # TRIAL AND TEST FUNCTIONS
 V = fem.functionspace(domain, ("Lagrange", 1))
@@ -145,8 +149,12 @@ coords = V.tabulate_dof_coordinates()
 _y = coords[:,0]
 _z = coords[:,1]
 _u = uh.x.array
-yreg = np.linspace(ymin, ymax, ymax*20*2+1)
-zreg = np.linspace(zmin, zmax, zmax*10*2+1)
+
+ny2_reg = 40
+nz_reg = 20
+
+yreg = np.linspace(ymin, ymax, ymax*ny2_reg*2+1)
+zreg = np.linspace(zmin, zmax, zmax*nz_reg+1)
 YREG, ZREG = np.meshgrid(yreg, zreg)
 
 ureg = griddata( np.array([_y, _z]).transpose(), _u,
@@ -180,6 +188,9 @@ urast_ext = np.column_stack( [0*urast_ext[:,0], urast_ext, 0*urast_ext[:,-1]] )
 
 dudz = np.diff( (urast_ext[:,:-1] + urast_ext[:,1:]) / 2., axis=0)
 dudy = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
+
+#yreg_ext = np.linspace(ymin, ymax, ymax*20*2+1)
+#zreg_ext = np.linspace(zmin, zmax, zmax*10*2+1)
 
 ymid = (yreg[:-1] + yreg[1:])/2.
 zmid = (zreg[:-1] + zreg[1:])/2.
