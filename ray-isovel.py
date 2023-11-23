@@ -8,7 +8,7 @@ import ufl
 from skimage import measure
 
 from matplotlib import pyplot as plt
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interp1d
 
 
 # DOMAIN AND FUNCTION SPACE
@@ -213,7 +213,7 @@ plt.imshow(urast, extent=(ymin-dy2, ymax+dy2, zmax+dz2, zmin-dz2))
 plt.colorbar( label = 'Flow velocity [m s$^{-1}$]')
 plt.ylim(plt.ylim()[::-1])
 plt.xlim((ymin,ymax))
-plt.ylim((zmin,zmax))
+plt.ylim((zmin,zmax)) # Comment to check: there is a ray on each side at z=1
 #sp = plt.streamplot( ymid, zmid, dudy, dudz, density=1, broken_streamlines=False,
 #                     color='white' )
 #plt.tight_layout()
@@ -223,7 +223,26 @@ plt.ylim((zmin,zmax))
 # Hm, can't use the given lines too well
 
 from streamlines import streamplot2
-sl = streamplot2( yreg_ext, zreg_ext, dudy_ext, dudz_ext, density=.7, broken_streamlines=False)
+
+# Set streamline start points along perimeter
+# I bet I can use interp1D for this
+# After going through all of the vertices of the channel margin
+
+# FIRST TEST: HARD CODE RECTANGLE
+s_perim = [0, zmax, zmax + 2*ymax, zmax + 2*ymax + zmax]
+y_perim = [ymin, ymin, ymax, ymax]
+z_perim = [zmax, 0, 0, zmax]
+
+f_y_interp = interp1d(s_perim, y_perim)
+f_z_interp = interp1d(s_perim, z_perim)
+
+s_perim_values = np.linspace(0, np.max(s_perim), 41)
+y_perim_values = f_y_interp(s_perim_values)
+z_perim_values = f_z_interp(s_perim_values)
+
+start_points = np.vstack(( y_perim_values, z_perim_values )).transpose()
+
+sl = streamplot2( yreg_ext, zreg_ext, dudy_ext, dudz_ext, broken_streamlines=False, start_points=start_points)
 
 # Arrays are (y,z) and at wall
 # So I could trace along outer wall.
@@ -237,12 +256,8 @@ sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
 
 # Plot
 for _sl in sl:
-    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1')
+    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1.')
 
-# Organize streamlines from left to right
-
-
-# Isovels too
 
 """
 # Rescale
