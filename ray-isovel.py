@@ -236,7 +236,7 @@ sl = sorted(sl, key=lambda _sl: _sl[-1,0])
 sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
 
 # Plot
-for _sl in sl[:20]:
+for _sl in sl:
     plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1')
 
 # Organize streamlines from left to right
