@@ -288,13 +288,20 @@ ymax_ext = ymax + dy_rast
 dz_rast = zmax/urast.shape[0]
 zmin_ext = zmin - dz_rast
 zmax_ext = zmax + dz_rast
+
+zmax_ext_2 = zmax + 2*dz_rast
+
+# Extend raster further to extend isovel lines on top
+urast_ext_top2 = np.vstack(( urast_ext[0,:], urast_ext ))
+
 for _level in np.linspace( np.min(urast_ext) \
                             + _ep, np.max(urast_ext) - _ep, 10 ):
-    _contours_local = measure.find_contours(urast_ext, level=_level)
+    _contours_local = measure.find_contours( urast_ext_top2, level=_level,
+                                             fully_connected='high')
     for __contour in _contours_local:
-        __contour[:,0] = __contour[:,0]/urast_ext.shape[0] * \
-                                              (zmax_ext-zmin_ext) + zmin_ext
-        __contour[:,1] = __contour[:,1]/urast_ext.shape[1] * \
+        __contour[:,0] = __contour[:,0]/urast_ext_top2.shape[0] * \
+                                              (zmax_ext_2-zmin_ext) + zmin_ext
+        __contour[:,1] = __contour[:,1]/urast_ext_top2.shape[1] * \
                                               (ymax_ext-ymin_ext) + ymin_ext
     # Plot all contours found
     contours.append(_contours_local)
