@@ -236,7 +236,15 @@ z_perim = [zmax, 0, 0, zmax]
 f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
+# Boundary
 s_perim_values = np.linspace(0, np.max(s_perim), 41)
+# Start the first and the last just below the boundary
+# div100 will keep the point in a valid area while not introducing
+# significant error into the stress calculation.
+epsilon = np.mean(np.diff(s_perim_values)/100.)
+s_perim_values[0] += epsilon
+s_perim_values[-1] -= epsilon
+
 y_perim_values = f_y_interp(s_perim_values)
 z_perim_values = f_z_interp(s_perim_values)
 
@@ -325,9 +333,10 @@ plt.tight_layout()
 # Try with shapely
 from shapely.geometry import LineString, Polygon
 
+_isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose() ) # 
 """
 _ray = LineString( sl[5] )
-_isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose() ) # Find a way around this "0"
+Find a way around this "0"
 #line.intersection( LineString( 
 
 #line = LineString([(0, 0), (2, 2)])
