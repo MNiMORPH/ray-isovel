@@ -254,6 +254,7 @@ sl = sorted(sl, key=lambda _sl: _sl[-1,0])
 # Yes, this works.
 sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
 
+
 # Plot
 for _sl in sl:
     plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1.')
@@ -289,7 +290,7 @@ zmin_ext = zmin - dz_rast
 zmax_ext = zmax + dz_rast
 for _level in np.linspace( np.min(urast_ext) \
                             + _ep, np.max(urast_ext) - _ep, 10 ):
-    _contours_local = (measure.find_contours(urast_ext, level=_level))
+    _contours_local = measure.find_contours(urast_ext, level=_level)
     for __contour in _contours_local:
         __contour[:,0] = __contour[:,0]/urast_ext.shape[0] * \
                                               (zmax_ext-zmin_ext) + zmin_ext
@@ -304,6 +305,34 @@ for _level in np.linspace( np.min(urast_ext) \
 plt.xlabel('Lateral distance from channel center [m]')
 plt.ylabel('Elevation above bed [m]')
 
+
 plt.tight_layout()
+
+
+##########################################
+# AWAY FROM PLOTTING: LINE INTERSECTIONS #
+##########################################
+
+# Intersection points
+# Try with shapely
+from shapely.geometry import LineString, Polygon
+
+_ray = LineString( sl[5] )
+_isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose() ) # Find a way around this "0"
+#line.intersection( LineString( 
+
+#line = LineString([(0, 0), (2, 2)])
+#inter = line.intersection( LineString([(1, 1), (3, 3)]) )
+
+intersect = _ray.intersection(_isovel)
+
+
+# Single line pair
+plt.figure()
+plt.plot(sl[5][:,0], sl[5][:,1])
+plt.plot(contours[3][0][:,1], contours[3][0][:,0])
+plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
+
+
 plt.show()
 
