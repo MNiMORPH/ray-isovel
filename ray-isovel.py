@@ -19,6 +19,8 @@ ymax = -ymin
 zmin = 0
 zmax = 1
 
+z_water_level = zmax # Needn't be, but setting so for now
+
 ny2 = 40
 nz = 20
 
@@ -324,6 +326,23 @@ plt.ylabel('Elevation above bed [m]')
 plt.tight_layout()
 
 
+####################################
+# TRUNCATE RAYS AT WATER'S SURFACE #
+####################################
+
+rays = []
+for _sl in sl:
+    # we want y at z=z_water_level
+    f = interp1d( _sl[:,1], _sl[:,0] )
+    # Cut the ray
+    ray = _sl[ _sl[:,1] < z_water_level]
+    # Append the water-surface point
+    ray_top = [ float(f(z_water_level)), z_water_level ]
+    ray = np.vstack( (ray, ray_top) )
+    # And append the ray to the list
+    rays.append(ray)
+
+
 ##########################################
 # AWAY FROM PLOTTING: LINE INTERSECTIONS #
 ##########################################
@@ -352,7 +371,7 @@ plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
 """
 
 
-# Multiple pairs
+# Multiple pairs on isovels
 from shapely.geometry import MultiLineString
 
 _rays = MultiLineString(sl)
