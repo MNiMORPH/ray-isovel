@@ -320,10 +320,12 @@ plt.tight_layout()
 # AWAY FROM PLOTTING: LINE INTERSECTIONS #
 ##########################################
 
+
 # Intersection points
 # Try with shapely
 from shapely.geometry import LineString, Polygon
 
+"""
 _ray = LineString( sl[5] )
 _isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose() ) # Find a way around this "0"
 #line.intersection( LineString( 
@@ -333,19 +335,44 @@ _isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).tra
 
 intersect = _ray.intersection(_isovel)
 
-
 # Single line pair
 plt.figure()
 plt.plot(sl[5][:,0], sl[5][:,1])
 plt.plot(contours[3][0][:,1], contours[3][0][:,0])
 plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
+"""
+
 
 # Multiple pairs
 from shapely.geometry import MultiLineString
 
 _rays = MultiLineString(sl)
 
-# With just 1 isovel
+# The first (full-area) loop need be run only once.
+# It follows the intersections of the isovels with the bed
+_boundary_coords = np.array([y_perim, z_perim]).transpose()
+boundary = LineString(_boundary_coords)
+
+intersections = _rays.intersection( boundary )
+
+_xyinter = []
+for _intersect in intersections.geoms:
+    _xyinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
+_xyinter = sorted(_xyinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
+
+if len(_xyinter) != len(sl):
+    print( "Intersection error." )
+    sys.exit(2)
+
+# Loop from the first to the second to last
+# (Need space on the sides to compute areas)
+#for i in range(1, len(sl)-1):
+    
+        
+
+
+
+# Then with one isovel
 intersect = _rays.intersection(_isovel)
 # Iterate through it
 # And realize that they come unsorted. Blah.
@@ -353,10 +380,17 @@ _xyinter = []
 for _intersect in intersect.geoms:
     # Intersect y, z
     _xyinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
-# Default sort based on x position; should go bank to bank, L-->R
-_xyinter = sorted(_xyinter)
+_xyinter = sorted(_xyinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
+
+if len(_xyinter) != len(sl):
+    print( "Intersection error." )
+    sys.exit(2)
 
 # NOW: We have all of the intersections
+
+# At this point, let's walk along the isovels to solve for K
+
+
 
 
 plt.show()
