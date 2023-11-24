@@ -333,6 +333,24 @@ plt.plot(sl[5][:,0], sl[5][:,1])
 plt.plot(contours[3][0][:,1], contours[3][0][:,0])
 plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
 
+# Multiple pairs
+from shapely.geometry import MultiLineString
+
+_rays = MultiLineString(sl)
+
+# With just 1 isovel
+intersect = _rays.intersection(_isovel)
+# Iterate through it
+# And realize that they come unsorted. Blah.
+_xyinter = []
+for _intersect in intersect.geoms:
+    # Intersect y, z
+    _xyinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
+# Default sort based on x position; should go bank to bank, L-->R
+_xyinter = sorted(_xyinter)
+
+# NOW: We have all of the intersections
+
 
 plt.show()
 
