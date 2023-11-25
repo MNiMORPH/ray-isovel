@@ -477,75 +477,90 @@ plt.plot( y_perim_values[1:-1],
 # (Need space on the sides to compute areas)
 #for i in range(1, len(sl)-1):
         
-_isovel_points = np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose()
-_isovel = LineString( _isovel_points )
 
-intersect = _rays.intersection(_isovel)
-# Iterate through it
-# And realize that they come unsorted. Blah.
-_yzinter = []
-for _intersect in intersect.geoms:
-    # Intersect y, z
-    _yzinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
-_yzinter = sorted(_yzinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
+# Loop over contours
+for contour_i in range(len(contours)):
+    _isovel_points = np.vstack((contours[contour_i][0][:,1], contours[contour_i][0][:,0] )).transpose()
+    _isovel = LineString( _isovel_points )
 
-if len(_yzinter) != len(sl):
-    print( "Intersection error." )
-    sys.exit(2)
+    intersect = _rays.intersection(_isovel)
+    # Iterate through it
+    # And realize that they come unsorted. Blah.
+    _yzinter = []
+    for _intersect in intersect.geoms:
+        # Intersect y, z
+        _yzinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
+    _yzinter = sorted(_yzinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
 
-# NOW: We have all of the intersections
+    if len(_yzinter) != len(sl):
+        print( "Intersection error." )
+        sys.exit(2)
 
-# Let's trim the rays, similarly to the above
-# Copy/paste-style for now: I can make everything clean once it's shown
-# to work (and not before): efficiency of my tieme :)
-for i in range(len(rays)):
-    # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
-    # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
-    # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
-    #if _yzinter[i] > z_water_level:
-        # ALL ABOVE THE LEVEL OF THE WATER?
-        # DEAL WITH THIS LATER :/
-    #    rays[i] = []
-    #else:
-    print("ALLOWING LINES ABVOE WATER SURFACE: BAD BAD BAD.")
-    rays[i] = np.vstack( (_yzinter[i],
-                          rays[i][rays[i][:,1] > _yzinter[i][1]]) )
+    # NOW: We have all of the intersections
+
+    # Let's trim the rays, similarly to the above
+    # Copy/paste-style for now: I can make everything clean once it's shown
+    # to work (and not before): efficiency of my tieme :)
+    for i in range(len(rays)):
+        # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
+        # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
+        # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
+        #if _yzinter[i] > z_water_level:
+            # ALL ABOVE THE LEVEL OF THE WATER?
+            # DEAL WITH THIS LATER :/
+        #    rays[i] = []
+        #else:
+        print("ALLOWING LINES ABVOE WATER SURFACE: BAD BAD BAD.")
+        rays[i] = np.vstack( (_yzinter[i],
+                              rays[i][rays[i][:,1] > _yzinter[i][1]]) )
 
 
-isovel_points = _isovel_points # fine
+    isovel_points = _isovel_points # fine
 
-isovel_paths = []
-isovel_path_interiors = []
-for i in range(1, len(sl)-1):
-    _interior_vertices = ( isovel_points[:,0] > _yzinter[i-1][0] ) \
-                         * (isovel_points[:,0] < _yzinter[i+1][0] )
-    _left_yz = isovel_points[i-1]
-    _interior_yz = isovel_points[_interior_vertices]
-    _right_yz = isovel_points[i+1]
-    _left_yz = np.array( _left_yz )
-    _left_yz = np.expand_dims(_left_yz, axis=0)
-    _interior_yz = np.array( _interior_yz )
-    _right_yz = np.array( _right_yz )
-    _right_yz = np.expand_dims(_right_yz, axis=0)
-    isovel_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
-    isovel_path_interiors.append( _interior_yz )
+    isovel_paths = []
+    isovel_path_interiors = []
+    for i in range(1, len(sl)-1):
+        try:
+            _interior_vertices = ( isovel_points[:,0] > _yzinter[i-1][0] ) \
+                                 * (isovel_points[:,0] < _yzinter[i+1][0] )
+            _left_yz = isovel_points[i-1]
+            _interior_yz = isovel_points[_interior_vertices]
+            _right_yz = isovel_points[i+1]
+            _left_yz = np.array( _left_yz )
+            _left_yz = np.expand_dims(_left_yz, axis=0)
+            _interior_yz = np.array( _interior_yz )
+            _right_yz = np.array( _right_yz )
+            _right_yz = np.expand_dims(_right_yz, axis=0)
+            isovel_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+            isovel_path_interiors.append( _interior_yz )
+        except:
+            isovel_paths.append( np.nan )
+            isovel_path_interiors.append( np.nan )
 
-# Path lengths
-isovel_path_lengths = []
-for isovel_path in isovel_paths:
-    isovel_path_lengths.append( LineString(isovel_path).length )
-isovel_path_lengths = np.array( isovel_path_lengths )
+    # Path lengths
+    isovel_path_lengths = []
+    for isovel_path in isovel_paths:
+        if type(isovel_path) is float:
+            if np.isnan(isovel_path):
+                isovel_path_lengths.append( np.nan )
+        else:
+            isovel_path_lengths.append( LineString(isovel_path).length )
+    isovel_path_lengths = np.array( isovel_path_lengths )
 
-# Area within the polygon
-flow_polygon_areas = []
-for i in range(len(isovel_paths)):
-    _polygon = np.vstack( [rays[i][::-1], isovel_path_interiors[i], rays[i+2]] )
-    flow_polygon_areas.append( Polygon( _polygon ).area )
-flow_polygon_areas = np.array( flow_polygon_areas )
+    # Area within the polygon
+    flow_polygon_areas = []
+    for i in range(len(isovel_paths)):
+        try:
+            _polygon = np.vstack( [rays[i][::-1], isovel_path_interiors[i], rays[i+2]] )
+            flow_polygon_areas.append( Polygon( _polygon ).area )
+        except:
+            print( "Polygon isn't a polygon -- point or line?" )
+            flow_polygon_areas.append( np.nan )
+    flow_polygon_areas = np.array( flow_polygon_areas )
 
-# Shear stress
-intermediate_shear_stress = rho * g * S \
-                              * flow_polygon_areas / isovel_path_lengths
+    # Shear stress
+    intermediate_shear_stress = rho * g * S \
+                                  * flow_polygon_areas / isovel_path_lengths
 
 
 
