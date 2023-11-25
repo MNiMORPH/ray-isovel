@@ -239,7 +239,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 41)
+s_perim_values = np.linspace(0, np.max(s_perim), 43)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -376,6 +376,7 @@ from shapely.geometry import MultiLineString
 
 _rays = MultiLineString(sl)
 
+"""
 # The first (full-area) loop need be run only once.
 # It follows the intersections of the isovels with the bed
 _boundary_coords = np.array([y_perim, z_perim]).transpose()
@@ -383,34 +384,73 @@ boundary = LineString(_boundary_coords)
 
 intersections = _rays.intersection( boundary )
 
-_xyinter = []
+_yzinter = []
 for _intersect in intersections.geoms:
-    _xyinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
-_xyinter = sorted(_xyinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
+    _yzinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
+_yzinter = sorted(_yzinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
 
-if len(_xyinter) != len(sl):
+if len(_yzinter) != len(sl):
     print( "Intersection error." )
     sys.exit(2)
+"""
+
+# Extract portion of boundary by distance along perimeter
+# This has no built-in concavity assumption :)
+
+# Perhaps I can build these perimeter distancse all in one loop too
+# The perim values for the yzinter values are known already: we set them!
+# In fact, we didn't actually have to do the above: we already knew where
+# these lines started!
+
+# Base paths: this stores the path along the boundary
+base_paths = []
+for i in range(1, len(sl)-1):
+    _interior_vertices = (s_perim > s_perim_values[i-1]) \
+                         * (s_perim < s_perim_values[i+1])
+    _left_yz = [ y_perim_values[i-1], z_perim_values[i-1] ]
+    _interior_yz = [ np.array(y_perim)[_interior_vertices],
+                     np.array(z_perim)[_interior_vertices] ]
+    _right_yz = [ y_perim_values[i+1], z_perim_values[i+1] ]
+    _left_yz = np.array( _left_yz )
+    _interior_yz = np.array( _interior_yz ).transpose()
+    _right_yz = np.array( _right_yz )
+    base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+
+# However, we don't even need all of this. We just need the interior base paths
+base_path_interiors = []
+
 
 # Loop from the first to the second to last
 # (Need space on the sides to compute areas)
 #for i in range(1, len(sl)-1):
-    
         
 
+# Truncate all rays at the boundary
+# And do this to the core "rays" because we'll keep chopping them
+# smnaller and smaller and smaller as we walk up the isovels.
+# Since we just define the starting points, no need to find them:
+# just use what we prescribe!
+_yzinter = np.vstack( (y_perim_values, z_perim_values) ).transpose()
+for i in range(len(rays)):
+    # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
+    # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
+    # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
+    rays[i] = np.vstack( (_yzinter[i],
+                          rays[i][rays[i][:,1] > _yzinter[i][1]]) )
+    
 
 
 # Then with one isovel
 intersect = _rays.intersection(_isovel)
 # Iterate through it
 # And realize that they come unsorted. Blah.
-_xyinter = []
+_yzinter = []
 for _intersect in intersect.geoms:
     # Intersect y, z
-    _xyinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
-_xyinter = sorted(_xyinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
+    _yzinter.append( [_intersect.coords.xy[0][0], _intersect.coords.xy[1][0]] )
+_yzinter = sorted(_yzinter, key=lambda _i: _i[0] + _i[1]*np.sign(_i[0]))
 
-if len(_xyinter) != len(sl):
+if len(_yzinter) != len(sl):
     print( "Intersection error." )
     sys.exit(2)
 
