@@ -402,9 +402,10 @@ if len(_yzinter) != len(sl):
 # In fact, we didn't actually have to do the above: we already knew where
 # these lines started!
 
-"""
 # Base paths: this stores the path along the boundary
+# Base path interiors: concatenate with rays to make polygon
 base_paths = []
+base_path_interiors = []
 for i in range(1, len(sl)-1):
     _interior_vertices = (s_perim > s_perim_values[i-1]) \
                          * (s_perim < s_perim_values[i+1])
@@ -416,17 +417,8 @@ for i in range(1, len(sl)-1):
     _interior_yz = np.array( _interior_yz ).transpose()
     _right_yz = np.array( _right_yz )
     base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
-"""
-
-# However, we don't even need all of this. We just need the interior base paths
-base_path_interiors = []
-for i in range(1, len(sl)-1):
-    _interior_vertices = (s_perim > s_perim_values[i-1]) \
-                         * (s_perim < s_perim_values[i+1])
-    _interior_yz = [ np.array(y_perim)[_interior_vertices],
-                     np.array(z_perim)[_interior_vertices] ]
-    _interior_yz = np.array( _interior_yz ).transpose()
     base_path_interiors.append( _interior_yz )
+
 
 
 # Loop from the first to the second to last
