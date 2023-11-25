@@ -239,7 +239,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 43)
+s_perim_values = np.linspace(0, np.max(s_perim), 41)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -352,7 +352,6 @@ for _sl in sl:
 # Try with shapely
 from shapely.geometry import LineString, Polygon
 
-_isovel = LineString( np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose() ) # 
 """
 _ray = LineString( sl[5] )
 Find a way around this "0"
@@ -419,6 +418,8 @@ for i in range(len(rays)):
 
 # Base paths: this stores the path along the boundary
 # Base path interiors: concatenate with rays to make polygon
+# MAY NEED TO EXPAND DIMENSIONS HERE FOR VSTACK IN THE FUTURE
+# WHEN I HAVE MORE THAN UST 1 POINT BETWEEN LEFT AND RIGHT
 base_paths = []
 base_path_interiors = []
 for i in range(1, len(sl)-1):
@@ -454,33 +455,31 @@ flow_polygon_areas = np.array( flow_polygon_areas )
 boundary_shear_stress = rho * g * S \
                           * flow_polygon_areas / base_path_lengths
 
-"""
-# Plot it!
-plt.figure(); plt.plot( y_perim_values[1:-1], boundary_shear_stress, 'ko' )
-"""
-
 # NOTE: I AM TAKING OVERLAPPING BOUNDARIES AND AREAS.
 # HOWEVER, SO LONG AS THE SPACING OF THE RAY ENDPOINTS AT THE BOUNDARY
 # ARE APPROXIMATELY CONSTANT, AND SO LONG AS I DIVIDE THE AREA BY THE
 # LENGTH OF THE PERIMETER (WHICH I DO), THIS IS IDENTICAL TO TAKING HALF OF
 # THE AREA AND HALF OF THE DISTANCE -- I.E., THAT PORTION ALONG THE
-# CENTRAL RAY.
+# CENTRAL
+
+"""
+# Plot it!
+plt.figure(); plt.plot( y_perim_values[1:-1], boundary_shear_stress, 'ko' )
 
 # How does it compare with Gary's 1.2 prediction?
 plt.figure();
 plt.plot( y_perim_values[1:-1],
           boundary_shear_stress * 1.2 / np.max(boundary_shear_stress),
           'ko' )
-plt.show()
+"""
 
 # Loop from the first to the second to last
 # (Need space on the sides to compute areas)
 #for i in range(1, len(sl)-1):
         
+_isovel_points = np.vstack((contours[3][0][:,1], contours[3][0][:,0] )).transpose()
+_isovel = LineString( _isovel_points )
 
-
-
-# Then with one isovel
 intersect = _rays.intersection(_isovel)
 # Iterate through it
 # And realize that they come unsorted. Blah.
@@ -495,6 +494,63 @@ if len(_yzinter) != len(sl):
     sys.exit(2)
 
 # NOW: We have all of the intersections
+
+# Let's trim the rays, similarly to the above
+# Copy/paste-style for now: I can make everything clean once it's shown
+# to work (and not before): efficiency of my tieme :)
+for i in range(len(rays)):
+    # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
+    # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
+    # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
+    #if _yzinter[i] > z_water_level:
+        # ALL ABOVE THE LEVEL OF THE WATER?
+        # DEAL WITH THIS LATER :/
+    #    rays[i] = []
+    #else:
+    print("ALLOWING LINES ABVOE WATER SURFACE: BAD BAD BAD.")
+    rays[i] = np.vstack( (_yzinter[i],
+                          rays[i][rays[i][:,1] > _yzinter[i][1]]) )
+
+
+isovel_points = _isovel_points # fine
+
+isovel_paths = []
+isovel_path_interiors = []
+for i in range(1, len(sl)-1):
+    _interior_vertices = ( isovel_points[:,0] > _yzinter[i-1][0] ) \
+                         * (isovel_points[:,0] < _yzinter[i+1][0] )
+    _left_yz = isovel_points[i-1]
+    _interior_yz = isovel_points[_interior_vertices]
+    _right_yz = isovel_points[i+1]
+    _left_yz = np.array( _left_yz )
+    _left_yz = np.expand_dims(_left_yz, axis=0)
+    _interior_yz = np.array( _interior_yz )
+    _right_yz = np.array( _right_yz )
+    _right_yz = np.expand_dims(_right_yz, axis=0)
+    isovel_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+    isovel_path_interiors.append( _interior_yz )
+
+# Path lengths
+isovel_path_lengths = []
+for isovel_path in isovel_paths:
+    isovel_path_lengths.append( LineString(isovel_path).length )
+isovel_path_lengths = np.array( isovel_path_lengths )
+
+# Area within the polygon
+flow_polygon_areas = []
+for i in range(len(isovel_paths)):
+    _polygon = np.vstack( [rays[i][::-1], isovel_path_interiors[i], rays[i+2]] )
+    flow_polygon_areas.append( Polygon( _polygon ).area )
+flow_polygon_areas = np.array( flow_polygon_areas )
+
+# Shear stress
+intermediate_shear_stress = rho * g * S \
+                              * flow_polygon_areas / isovel_path_lengths
+
+
+
+# NEXT STEPS: ITERATE OVER ALL ISOVELS, THEN SOLVE FOR K
+
 
 # At this point, let's walk along the isovels to solve for K
 
