@@ -402,8 +402,6 @@ if len(_yzinter) != len(sl):
 # these lines started!
 
 # Truncate all rays at the boundary
-# And do this to the core "rays" because we'll keep chopping them
-# smnaller and smaller and smaller as we walk up the isovels.
 # Since we just define the starting points, no need to find them:
 # just use what we prescribe!
 _yzinter = np.vstack( (y_perim_values, z_perim_values) ).transpose()
@@ -413,8 +411,6 @@ for i in range(len(rays)):
     # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
     rays[i] = np.vstack( (_yzinter[i],
                           rays[i][rays[i][:,1] > _yzinter[i][1]]) )
-    
-
 
 # Base paths: this stores the path along the boundary
 # Base path interiors: concatenate with rays to make polygon
@@ -434,6 +430,16 @@ for i in range(1, len(sl)-1):
     _right_yz = np.array( _right_yz )
     base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
     base_path_interiors.append( _interior_yz )
+
+# Length of full rays, from boundary to free (water) surface
+# Not sure if this is really needed
+ray_lengths = []
+for ray in rays:
+    ray_lengths.append( LineString(ray).length )
+ray_lengths = np.array( ray_lengths )
+
+# At boundary, path length up to point = 0 everywhere
+ray_path_lengths = 0 * ray_lengths
 
 # Length of the line along the boundary
 # Just using GDAL instead of writing my own
@@ -501,6 +507,8 @@ for contour_i in range(len(contours)):
     # Let's trim the rays, similarly to the above
     # Copy/paste-style for now: I can make everything clean once it's shown
     # to work (and not before): efficiency of my tieme :)
+    ray_paths = [] # For the paths of the rays up to this point
+    rays_truncated = []
     for i in range(len(rays)):
         # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
         # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
@@ -510,9 +518,12 @@ for contour_i in range(len(contours)):
             # DEAL WITH THIS LATER :/
         #    rays[i] = []
         #else:
-        print("ALLOWING LINES ABVOE WATER SURFACE: BAD BAD BAD.")
-        rays[i] = np.vstack( (_yzinter[i],
-                              rays[i][rays[i][:,1] > _yzinter[i][1]]) )
+        rays_truncated.append( np.vstack( (_yzinter[i],
+                                      rays[i][rays[i][:,1] > _yzinter[i][1]]) ))
+        if (rays_truncated[-1][:,1] > z_water_level).any():
+            print("ALLOWING LINES ABVOE WATER SURFACE: BAD BAD BAD.")
+        ray_paths.append( np.vstack( (rays[i][rays[i][:,1] < _yzinter[i][1]],
+                                      _yzinter[i]) ) )
 
 
     isovel_points = _isovel_points # fine
@@ -538,6 +549,12 @@ for contour_i in range(len(contours)):
             isovel_path_interiors.append( np.nan )
 
     # Path lengths
+    # Ray
+    ray_path_lengths = []
+    for ray_path in ray_paths:
+        ray_path_lengths.append( LineString(ray_path).length )
+    ray_path_lengths = np.array( ray_path_lengths )
+    # Isovel
     isovel_path_lengths = []
     for isovel_path in isovel_paths:
         if type(isovel_path) is float:
@@ -551,7 +568,9 @@ for contour_i in range(len(contours)):
     flow_polygon_areas = []
     for i in range(len(isovel_paths)):
         try:
-            _polygon = np.vstack( [rays[i][::-1], isovel_path_interiors[i], rays[i+2]] )
+            _polygon = np.vstack( [rays_truncated[i][::-1],
+                                  isovel_path_interiors[i],
+                                  rays_truncated[i+2]] )
             flow_polygon_areas.append( Polygon( _polygon ).area )
         except:
             print( "Polygon isn't a polygon -- point or line?" )
