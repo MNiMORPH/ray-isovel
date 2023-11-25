@@ -20,6 +20,7 @@ zmin = 0
 zmax = 1
 
 z_water_level = zmax # Needn't be, but setting so for now
+water_depth = z_water_level # likewise
 
 ny2 = 40
 nz = 20
@@ -66,12 +67,16 @@ boundary_facets = mesh.exterior_facet_indices(domain.topology)
 # This isn't it, but demonstrates the idea
 # Actually, now with rectangle centered in the middle, yes
 g = 9.8
+kappa = 0.408
 S = 1E-2
 # Distance from wall as initial guess for the ray-based eddy-size (I think) term
 dist_y = ymax - np.abs(x[0])
 dist_z = x[1]
 dist = (dist_y**2 + dist_z**2)**.5
 rho = 1000. # water density
+betaRI = 6.24
+# Water depth here seems brittle -- what is it in an irregular channel? Mean?
+K_eddy_viscosity_0 = kappa * (g * water_depth * S)**.5 * water_depth/betaRI
 dudz = 0.01 # Approx as constant for now <-- THIS PART REQUIRES ITERATION !!!!
 K = rho * dist * dudz
 f = g*S/K
@@ -347,6 +352,7 @@ for _sl in sl:
 # AWAY FROM PLOTTING: LINE INTERSECTIONS #
 ##########################################
 
+yzK_list = []
 
 # Intersection points
 # Try with shapely
@@ -461,6 +467,20 @@ flow_polygon_areas = np.array( flow_polygon_areas )
 boundary_shear_stress = rho * g * S \
                           * flow_polygon_areas / base_path_lengths
 
+# Shear velocity:
+u_star = (boundary_shear_stress / rho)**.5
+
+# Eddy viscosity
+# Here just 0
+# Should I prop it up to molecular diffusivity?
+# Yes: otherwise div0
+K_eddy_viscosity = rho * u_star * ray_path_lengths[1:-1]
+K_eddy_viscosity += 1E-6
+
+yzK = np.hstack( (_yzinter[1:-1], np.expand_dims(K_eddy_viscosity, axis=1)) )
+
+# 
+#for i in range(len(base_paths)):
 # NOTE: I AM TAKING OVERLAPPING BOUNDARIES AND AREAS.
 # HOWEVER, SO LONG AS THE SPACING OF THE RAY ENDPOINTS AT THE BOUNDARY
 # ARE APPROXIMATELY CONSTANT, AND SO LONG AS I DIVIDE THE AREA BY THE
@@ -581,7 +601,23 @@ for contour_i in range(len(contours)):
     intermediate_shear_stress = rho * g * S \
                                   * flow_polygon_areas / isovel_path_lengths
 
+    # Eddy viscosity
+    K_eddy_viscosity = rho * u_star * ray_path_lengths[1:-1] \
+                           * intermediate_shear_stress / boundary_shear_stress
+    K_eddy_viscosity[ ray_path_lengths[1:-1] > 0.2*ray_lengths[1:-1] ] = K_eddy_viscosity_0
+    K_eddy_viscosity[ K_eddy_viscosity > K_eddy_viscosity_0 ] = K_eddy_viscosity_0
+    # Here just 0
+    # Should I prop it up to molecular diffusivity?
+    # Yes: otherwise div0
+    # Try without when off boundaries; are diffusivities additive?
+    #K_eddy_viscosity += 1E-6
 
+    _yzK = np.hstack( (_yzinter[1:-1],
+                        np.expand_dims(K_eddy_viscosity, axis=1)) )
+    yzK = np.vstack((yzK, _yzK))
+
+plt.figure()
+plt.scatter(yzK[:,0], yzK[:,1], c=yzK[:,2])
 
 # NEXT STEPS: ITERATE OVER ALL ISOVELS, THEN SOLVE FOR K
 
