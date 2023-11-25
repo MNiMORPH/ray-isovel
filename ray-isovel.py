@@ -402,6 +402,21 @@ if len(_yzinter) != len(sl):
 # In fact, we didn't actually have to do the above: we already knew where
 # these lines started!
 
+# Truncate all rays at the boundary
+# And do this to the core "rays" because we'll keep chopping them
+# smnaller and smaller and smaller as we walk up the isovels.
+# Since we just define the starting points, no need to find them:
+# just use what we prescribe!
+_yzinter = np.vstack( (y_perim_values, z_perim_values) ).transpose()
+for i in range(len(rays)):
+    # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
+    # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
+    # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
+    rays[i] = np.vstack( (_yzinter[i],
+                          rays[i][rays[i][:,1] > _yzinter[i][1]]) )
+    
+
+
 # Base paths: this stores the path along the boundary
 # Base path interiors: concatenate with rays to make polygon
 base_paths = []
@@ -419,26 +434,50 @@ for i in range(1, len(sl)-1):
     base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
     base_path_interiors.append( _interior_yz )
 
+# Length of the line along the boundary
+# Just using GDAL instead of writing my own
+# Since I also plan to use it for areas (instead of writing my own)
+# Should all be the same except the first and last
+base_path_lengths = []
+for base_path in base_paths:
+    base_path_lengths.append( LineString(base_path).length )
+base_path_lengths = np.array( base_path_lengths )
 
+# Area within the polygon
+flow_polygon_areas = []
+for i in range(len(base_paths)):
+    _polygon = np.vstack( [rays[i][::-1], base_path_interiors[i], rays[i+2]] )
+    flow_polygon_areas.append( Polygon( _polygon ).area )
+flow_polygon_areas = np.array( flow_polygon_areas )
+
+# Shear stress
+boundary_shear_stress = rho * g * S \
+                          * flow_polygon_areas / base_path_lengths
+
+"""
+# Plot it!
+plt.figure(); plt.plot( y_perim_values[1:-1], boundary_shear_stress, 'ko' )
+"""
+
+# NOTE: I AM TAKING OVERLAPPING BOUNDARIES AND AREAS.
+# HOWEVER, SO LONG AS THE SPACING OF THE RAY ENDPOINTS AT THE BOUNDARY
+# ARE APPROXIMATELY CONSTANT, AND SO LONG AS I DIVIDE THE AREA BY THE
+# LENGTH OF THE PERIMETER (WHICH I DO), THIS IS IDENTICAL TO TAKING HALF OF
+# THE AREA AND HALF OF THE DISTANCE -- I.E., THAT PORTION ALONG THE
+# CENTRAL RAY.
+
+# How does it compare with Gary's 1.2 prediction?
+plt.figure();
+plt.plot( y_perim_values[1:-1],
+          boundary_shear_stress * 1.2 / np.max(boundary_shear_stress),
+          'ko' )
+plt.show()
 
 # Loop from the first to the second to last
 # (Need space on the sides to compute areas)
 #for i in range(1, len(sl)-1):
         
 
-# Truncate all rays at the boundary
-# And do this to the core "rays" because we'll keep chopping them
-# smnaller and smaller and smaller as we walk up the isovels.
-# Since we just define the starting points, no need to find them:
-# just use what we prescribe!
-_yzinter = np.vstack( (y_perim_values, z_perim_values) ).transpose()
-for i in range(len(rays)):
-    # NOTE: HERE ASSUMING A CONCAVE CHANNEL CROSS SECTION.
-    # WE CANNOT HAVE OVERHANGS FOR THIS METHOD TO WORK
-    # BUT IT MIGHT NTO BE TOO HARD TO RELAX IT
-    rays[i] = np.vstack( (_yzinter[i],
-                          rays[i][rays[i][:,1] > _yzinter[i][1]]) )
-    
 
 
 # Then with one isovel
