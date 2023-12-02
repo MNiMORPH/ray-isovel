@@ -345,11 +345,11 @@ plt.tight_layout()
 rays = []
 for _sl in sl:
     # we want y at z=z_water_level
-    f = interp1d( _sl[:,1], _sl[:,0] )
+    f_interp = interp1d( _sl[:,1], _sl[:,0] )
     # Cut the ray
     ray = _sl[ _sl[:,1] < z_water_level]
     # Append the water-surface point
-    ray_top = [ float(f(z_water_level)), z_water_level ]
+    ray_top = [ float(f_interp(z_water_level)), z_water_level ]
     ray = np.vstack( (ray, ray_top) )
     # And append the ray to the list
     rays.append(ray)
