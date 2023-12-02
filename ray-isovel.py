@@ -344,6 +344,7 @@ plt.tight_layout()
 # TRUNCATE RAYS AT WATER'S SURFACE #
 ####################################
 
+"""
 rays = []
 for _sl in sl:
     # we want y at z=z_water_level
@@ -353,6 +354,23 @@ for _sl in sl:
     # Append the water-surface point
     ray_top = [ float(f_interp(z_water_level)), z_water_level ]
     ray = np.vstack( (ray, ray_top) )
+    # And append the ray to the list
+    rays.append(ray)
+"""
+
+# Update this to add the channel center:
+# ensure that all isovels end at the channel top+center
+# THIS WILL FAIL IF THE CHANNEL IS CURVED AND THE MAX VELOCITY CORE IS ELSEWHERE
+ray_endpoint_top = [0, zmax]
+rays = []
+for _sl in sl:
+    # we want y at z=z_water_level
+    f_interp = interp1d( _sl[:,1], _sl[:,0] )
+    # Cut the ray
+    ray = _sl[ _sl[:,1] < z_water_level]
+    # Append the water-surface point
+    ray_top = [ float(f_interp(z_water_level)), z_water_level ]
+    ray = np.vstack( (ray, ray_top, ray_endpoint_top) )
     # And append the ray to the list
     rays.append(ray)
 
@@ -388,7 +406,8 @@ plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
 # Multiple pairs on isovels
 from shapely.geometry import MultiLineString
 
-_rays = MultiLineString(sl)
+# Set up rays to be just those within the channel shape itself
+_rays = MultiLineString(rays)
 
 """
 # The first (full-area) loop need be run only once.
