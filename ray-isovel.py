@@ -10,6 +10,8 @@ from skimage import measure
 from matplotlib import pyplot as plt
 from scipy.interpolate import griddata, interp1d
 
+import sys
+
 
 # DOMAIN AND FUNCTION SPACE
 # 8x8 grid
