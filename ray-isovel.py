@@ -87,7 +87,7 @@ K_eddy_viscosity = K_eddy_viscosity_0
 # 
 # Source term
 f = g*S/K_eddy_viscosity
-f = dist
+#f = dist
 
 """
 ###############
