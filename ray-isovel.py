@@ -77,9 +77,16 @@ rho = 1000. # water density
 betaRI = 6.24
 # Water depth here seems brittle -- what is it in an irregular channel? Mean?
 K_eddy_viscosity_0 = kappa * (g * water_depth * S)**.5 * water_depth/betaRI
+"""
 dudz = 0.01 # Approx as constant for now <-- THIS PART REQUIRES ITERATION !!!!
 K = rho * dist * dudz
-f = g*S/K
+"""
+# Initial guess: eddy viscosity is everywhere at its maximum value
+K_eddy_viscosity = K_eddy_viscosity_0
+# LATER, USE UPDATED VALUE
+# 
+# Source term
+f = g*S/K_eddy_viscosity
 f = dist
 
 """
