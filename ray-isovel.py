@@ -84,13 +84,22 @@ dudz = 0.01 # Approx as constant for now <-- THIS PART REQUIRES ITERATION !!!!
 K = rho * dist * dudz
 """
 # Initial guess: eddy viscosity is everywhere at its maximum value
-# Initial guess: eddy viscosity is dynamic viscosity
 K_eddy_viscosity = K_eddy_viscosity_0
+# Initial guess: eddy viscosity is dynamic viscosity
+# Not a great initial guess
+#K_eddy_viscosity = 1E-6
 # LATER, USE UPDATED VALUE
 # 
 # Source term
 f = g*S/K_eddy_viscosity
 #f = dist
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Note: The source term doesn't inlcude the cross derivatives from the
+# dK/d(x,y) portion of the equation.
+# I think that these should be significantly smaller than the velocity
+# derivatives and perhaps therefore may not matter as much
+# But we will have to address this more formally at some point.
 
 """
 ###############
@@ -254,7 +263,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 5)
+s_perim_values = np.linspace(0, np.max(s_perim), 41)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -299,7 +308,8 @@ for _level in np.linspace( np.min(urast) + _ep, np.max(urast) - _ep, 10 ):
 """
 
 # Use extended urast so contours don't end before velocity raster's end
-_ep = 2E-2 # small but not miniscule value
+#_ep = 2E-2 # small but not miniscule value
+_ep = np.max(urast)/100.
 # NOTE: SHOULD SET UP 0s ALONG NO SLIP MARGINS, FOR INTERPOLATION
 contours = []
 # Rescaling
@@ -628,7 +638,7 @@ for contour_i in range(len(contours)):
                                   * flow_polygon_areas / isovel_path_lengths
 
     # Eddy viscosity
-    K_eddy_viscosity = rho * u_star * ray_path_lengths[1:-1] \
+    K_eddy_viscosity = kappa * u_star * ray_path_lengths[1:-1] \
                            * intermediate_shear_stress / boundary_shear_stress
     K_eddy_viscosity[ ray_path_lengths[1:-1] > 0.2*ray_lengths[1:-1] ] = K_eddy_viscosity_0
     K_eddy_viscosity[ K_eddy_viscosity > K_eddy_viscosity_0 ] = K_eddy_viscosity_0
