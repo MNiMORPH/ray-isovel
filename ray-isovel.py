@@ -13,6 +13,10 @@ from scipy.interpolate import griddata, interp1d
 import sys
 
 
+# Minimum eddy viscosity
+_K_eddy_visc_min = 1E-6 # Molecular
+_K_eddy_visc_min = 1E-3 # More reasonable / functional?
+
 # DOMAIN AND FUNCTION SPACE
 # 8x8 grid
 #domain = mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, mesh.CellType.quadrilateral)
@@ -90,6 +94,9 @@ K_eddy_viscosity = K_eddy_viscosity_0
 #K_eddy_viscosity = 1E-6
 # LATER, USE UPDATED VALUE
 # 
+
+# START HERE FOR BY-HAND ITER
+
 # Source term
 f = g*S/K_eddy_viscosity
 #f = dist
@@ -541,7 +548,7 @@ u_star = (boundary_shear_stress / rho)**.5
 _K_eddy_visc = kappa * u_star * ray_path_lengths[1:-1]
 """
 _K_eddy_visc = kappa * u_star * ray_path_lengths
-_K_eddy_visc += 1E-6
+_K_eddy_visc += _K_eddy_visc_min
 
 """
 # From when we used only interior polygons
@@ -754,19 +761,19 @@ for contour_i in range(len(contours)):
     
 # Make sure we have the upper corners
 if not ( (yzK[:,:2] == [ymin, zmax]).all(axis=1) ).any():
-    _yzK = np.array([[ymin, zmax, 1E-6]])
+    _yzK = np.array([[ymin, zmax, _K_eddy_visc_min]])
     yzK = np.vstack((yzK, _yzK))
 if not ( (yzK[:,:2] == [ymax, zmax]).all(axis=1) ).any():
-    _yzK = np.array([[ymax, zmax, 1E-6]])
+    _yzK = np.array([[ymax, zmax, _K_eddy_visc_min]])
     yzK = np.vstack((yzK, _yzK))
 
 # Let's tag the lower corners too -- in case we don't have isovels
 # that go exactly to them
 if not ( (yzK[:,:2] == [ymin, zmin]).all(axis=1) ).any():
-    _yzK = np.array([[ymin, zmin, 1E-6]])
+    _yzK = np.array([[ymin, zmin, _K_eddy_visc_min]])
     yzK = np.vstack((yzK, _yzK))
 if not ( (yzK[:,:2] == [ymax, zmin]).all(axis=1) ).any():
-    _yzK = np.array([[ymax, zmin, 1E-6]])
+    _yzK = np.array([[ymax, zmin, _K_eddy_visc_min]])
     yzK = np.vstack((yzK, _yzK))
 
 # And 0.2 away from walls at top
