@@ -270,7 +270,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 201)
+s_perim_values = np.linspace(0, np.max(s_perim), 41)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -566,6 +566,8 @@ yzK = np.hstack( (_yzinter, np.expand_dims(_K_eddy_visc, axis=1)) )
 # CENTRAL
 
 """
+# From when we didn't calculate stresses at first and last rays
+
 # Plot it!
 plt.figure(); plt.plot( y_perim_values[1:-1], boundary_shear_stress, 'ko' )
 
@@ -575,6 +577,7 @@ plt.plot( y_perim_values[1:-1],
           boundary_shear_stress * 1.2 / np.max(boundary_shear_stress),
           'ko' )
 """
+
 
 # Loop from the first to the second to last
 # (Need space on the sides to compute areas)
