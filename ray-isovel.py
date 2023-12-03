@@ -84,6 +84,7 @@ dudz = 0.01 # Approx as constant for now <-- THIS PART REQUIRES ITERATION !!!!
 K = rho * dist * dudz
 """
 # Initial guess: eddy viscosity is everywhere at its maximum value
+# Initial guess: eddy viscosity is dynamic viscosity
 K_eddy_viscosity = K_eddy_viscosity_0
 # LATER, USE UPDATED VALUE
 # 
@@ -279,10 +280,6 @@ sl = sorted(sl, key=lambda _sl: _sl[-1,0])
 sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
 
 
-# Plot
-for _sl in sl:
-    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='0.')
-
 
 """
 # Rescale
@@ -319,7 +316,7 @@ zmax_ext_2 = zmax + 2*dz_rast
 urast_ext_top2 = np.vstack(( urast_ext[0,:], urast_ext ))
 
 for _level in np.linspace( np.min(urast_ext) \
-                            + _ep, np.max(urast_ext) - _ep, 3 ):
+                            + _ep, np.max(urast_ext) - _ep, 10 ):
     _contours_local = measure.find_contours( urast_ext_top2, level=_level,
                                              fully_connected='high')
     for __contour in _contours_local:
@@ -391,8 +388,12 @@ from shapely.geometry import MultiLineString
 
 ray_endpoint_top = [0, zmax]
 rays_to_middle = []
-for _ray in rays:
-    rays_to_middle.append( np.vstack((ray, ray_endpoint_top)) )
+for ray in rays:
+    #if not (ray[-1] == np.array([0,1])).all():
+    # Now just going from second to last straihgt to middle
+    # Later code was not picking up multiple intersections because they 
+    # occurred at the same point -- therefore, not one per line
+    rays_to_middle.append( np.vstack((ray[:-1], ray_endpoint_top)) )
 
 _rays = MultiLineString(rays_to_middle)
 
@@ -517,7 +518,17 @@ plt.plot( y_perim_values[1:-1],
 # Loop from the first to the second to last
 # (Need space on the sides to compute areas)
 #for i in range(1, len(sl)-1):
+      
         
+# Plot rays
+"""
+for _sl in sl:
+    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='0.')
+"""
+#for ray in rays_to_middle:
+for ray in rays:
+    plt.plot(ray[:,0], ray[:,1], linewidth=2, color='0.')
+
 
 # Loop over contours
 for contour_i in range(len(contours)):
@@ -631,8 +642,16 @@ for contour_i in range(len(contours)):
                         np.expand_dims(K_eddy_viscosity, axis=1)) )
     yzK = np.vstack((yzK, _yzK))
 
-plt.figure()
+# We miss the top-most lines because we don't have areas on both sides
+# of these
+plt.figure( figsize=(16,2.5) )
+# Extents from other code
 plt.scatter(yzK[:,0], yzK[:,1], c=yzK[:,2])
+plt.colorbar( label = 'Eddy viscosity [m$^2$ s$^{-1}$]')
+plt.ylim(plt.ylim()[::-1])
+plt.xlim((ymin,ymax))
+plt.ylim((zmin,zmax)) # Comment to check: there is a ray on each side at z=1
+plt.tight_layout()
 
 # NEXT STEPS: ITERATE OVER ALL ISOVELS, THEN SOLVE FOR K
 
