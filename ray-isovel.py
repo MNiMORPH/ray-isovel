@@ -496,14 +496,14 @@ boundary_shear_stress = rho * g * S \
 # Shear velocity:
 u_star = (boundary_shear_stress / rho)**.5
 
-# Eddy viscosity
+# Eddy viscosity on boundaries
 # Here just 0
 # Should I prop it up to molecular diffusivity?
 # Yes: otherwise div0
-K_eddy_viscosity = rho * u_star * ray_path_lengths[1:-1]
-K_eddy_viscosity += 1E-6
+_K_eddy_visc = kappa * u_star * ray_path_lengths[1:-1]
+_K_eddy_visc += 1E-6
 
-yzK = np.hstack( (_yzinter[1:-1], np.expand_dims(K_eddy_viscosity, axis=1)) )
+yzK = np.hstack( (_yzinter[1:-1], np.expand_dims(_K_eddy_visc, axis=1)) )
 
 # 
 #for i in range(len(base_paths)):
@@ -638,18 +638,18 @@ for contour_i in range(len(contours)):
                                   * flow_polygon_areas / isovel_path_lengths
 
     # Eddy viscosity
-    K_eddy_viscosity = kappa * u_star * ray_path_lengths[1:-1] \
+    _K_eddy_visc = kappa * u_star * ray_path_lengths[1:-1] \
                            * intermediate_shear_stress / boundary_shear_stress
-    K_eddy_viscosity[ ray_path_lengths[1:-1] > 0.2*ray_lengths[1:-1] ] = K_eddy_viscosity_0
-    K_eddy_viscosity[ K_eddy_viscosity > K_eddy_viscosity_0 ] = K_eddy_viscosity_0
+    _K_eddy_visc[ ray_path_lengths[1:-1] > 0.2*ray_lengths[1:-1] ] = K_eddy_viscosity_0
+    _K_eddy_visc[ _K_eddy_visc > K_eddy_viscosity_0 ] = K_eddy_viscosity_0
     # Here just 0
     # Should I prop it up to molecular diffusivity?
     # Yes: otherwise div0
     # Try without when off boundaries; are diffusivities additive?
-    #K_eddy_viscosity += 1E-6
+    #_K_eddy_visc += 1E-6
 
     _yzK = np.hstack( (_yzinter[1:-1],
-                        np.expand_dims(K_eddy_viscosity, axis=1)) )
+                        np.expand_dims(_K_eddy_visc, axis=1)) )
     yzK = np.vstack((yzK, _yzK))
 
 # We miss the top-most lines because we don't have areas on both sides
