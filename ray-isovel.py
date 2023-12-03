@@ -253,7 +253,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 41)
+s_perim_values = np.linspace(0, np.max(s_perim), 5)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -281,7 +281,7 @@ sl = sorted( sl, key=lambda _sl: _sl[0,0] + _sl[0,1]*np.sign(_sl[0,0]) )
 
 # Plot
 for _sl in sl:
-    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1.')
+    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='0.')
 
 
 """
@@ -319,7 +319,7 @@ zmax_ext_2 = zmax + 2*dz_rast
 urast_ext_top2 = np.vstack(( urast_ext[0,:], urast_ext ))
 
 for _level in np.linspace( np.min(urast_ext) \
-                            + _ep, np.max(urast_ext) - _ep, 10 ):
+                            + _ep, np.max(urast_ext) - _ep, 3 ):
     _contours_local = measure.find_contours( urast_ext_top2, level=_level,
                                              fully_connected='high')
     for __contour in _contours_local:
@@ -344,7 +344,6 @@ plt.tight_layout()
 # TRUNCATE RAYS AT WATER'S SURFACE #
 ####################################
 
-"""
 rays = []
 for _sl in sl:
     # we want y at z=z_water_level
@@ -356,24 +355,6 @@ for _sl in sl:
     ray = np.vstack( (ray, ray_top) )
     # And append the ray to the list
     rays.append(ray)
-"""
-
-# Update this to add the channel center:
-# ensure that all isovels end at the channel top+center
-# THIS WILL FAIL IF THE CHANNEL IS CURVED AND THE MAX VELOCITY CORE IS ELSEWHERE
-ray_endpoint_top = [0, zmax]
-rays = []
-for _sl in sl:
-    # we want y at z=z_water_level
-    f_interp = interp1d( _sl[:,1], _sl[:,0] )
-    # Cut the ray
-    ray = _sl[ _sl[:,1] < z_water_level]
-    # Append the water-surface point
-    ray_top = [ float(f_interp(z_water_level)), z_water_level ]
-    ray = np.vstack( (ray, ray_top, ray_endpoint_top) )
-    # And append the ray to the list
-    rays.append(ray)
-
 
 ##########################################
 # AWAY FROM PLOTTING: LINE INTERSECTIONS #
@@ -407,7 +388,13 @@ plt.plot(intersect.coords.xy[0], intersect.coords.xy[1], 'ko')
 from shapely.geometry import MultiLineString
 
 # Set up rays to be just those within the channel shape itself
-_rays = MultiLineString(rays)
+
+ray_endpoint_top = [0, zmax]
+rays_to_middle = []
+for _ray in rays:
+    rays_to_middle.append( np.vstack((ray, ray_endpoint_top)) )
+
+_rays = MultiLineString(rays_to_middle)
 
 """
 # The first (full-area) loop need be run only once.
