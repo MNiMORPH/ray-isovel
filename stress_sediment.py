@@ -96,8 +96,3 @@ plt.plot(_y, _eta_1, color='purple', alpha=.5, linewidth=4)
 plt.quiver(_y, _eta_0, (_y-_y), (_eta_1-_eta_0), angles='xy', scale_units='xy',
             scale=1, width=.006, color='.7')
 
-
-# Now update the boundary based on these points
-# Let's say that the water surface is now at z=0.55
-# We will use y,z as x,y in gmsh, for now.
-
