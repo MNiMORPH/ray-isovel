@@ -263,7 +263,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 121)
+s_perim_values = np.linspace(0, np.max(s_perim), 201)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -751,22 +751,71 @@ for contour_i in range(len(contours)):
     _yzK = np.hstack( (_yzinter,
                         np.expand_dims(_K_eddy_visc, axis=1)) )
     yzK = np.vstack((yzK, _yzK))
+    
+# Make sure we have the upper corners
+if not ( (yzK[:,:2] == [ymin, zmax]).all(axis=1) ).any():
+    _yzK = np.array([[ymin, zmax, 1E-6]])
+    yzK = np.vstack((yzK, _yzK))
+if not ( (yzK[:,:2] == [ymax, zmax]).all(axis=1) ).any():
+    _yzK = np.array([[ymax, zmax, 1E-6]])
+    yzK = np.vstack((yzK, _yzK))
 
+# Let's tag the lower corners too -- in case we don't have isovels
+# that go exactly to them
+if not ( (yzK[:,:2] == [ymin, zmin]).all(axis=1) ).any():
+    _yzK = np.array([[ymin, zmin, 1E-6]])
+    yzK = np.vstack((yzK, _yzK))
+if not ( (yzK[:,:2] == [ymax, zmin]).all(axis=1) ).any():
+    _yzK = np.array([[ymax, zmin, 1E-6]])
+    yzK = np.vstack((yzK, _yzK))
 
+# And 0.2 away from walls at top
+# Let's go to max
+if not ( (yzK[:,:2] == [ymin-0.2*ymin, zmax]).all(axis=1) ).any():
+    _yzK = np.array([[ymin-0.2*ymin, zmax, K_eddy_viscosity_0]])
+    yzK = np.vstack((yzK, _yzK))
+if not ( (yzK[:,:2] == [ymax-0.2*ymax, zmax]).all(axis=1) ).any():
+    _yzK = np.array([[ymax-0.2*ymax, zmax, K_eddy_viscosity_0]])
+    yzK = np.vstack((yzK, _yzK))
+    
 
 ##########################################
 # UPDATE K BASED ON ABOVE WORKED EXAMPLE #
 ##########################################
 
-
-
-
-
 # Coordinates in space
 coords = V.tabulate_dof_coordinates()
 
 # Interpolate
-K_at_coords = griddata( yzK[:,:2], yzK[:,2], coords[:,:2] )
+"""
+_yz = np.round(yzK[:,:2], 3)
+#K_at_coords = griddata( yzK[:,:2], yzK[:,2], coords[:,:2] )
+K_at_coords = griddata( _yz, yzK[:,2], coords[:,:2] )
+
+# Returns nan even though I have points on all sides of it
+# AH! THIS WAS DUE TO NAN DATA IN yzK
+griddata( yzK[:,:2], yzK[:,2], [[3.85, 0.93]] )
+"""
+# For now, let's just try nearest neighbor instead
+K_at_coords = griddata( yzK[:,:2], yzK[:,2], coords[:,:2], method='nearest' )
+
+# Still nan in upper right!
+# Ooooh: Isn't interpolate. I must have nan values in yzK!
+RyzK = yzK[ np.isfinite( yzK[:,2] ) ]
+
+# Nearest neighbor again
+K_at_coords = griddata( RyzK[:,:2], RyzK[:,2], coords[:,:2], method='nearest' )
+
+"""
+# Now let's try to interpolate
+_yz = np.round(RyzK[:,:2], 3)
+K_at_coords = griddata( _yz, RyzK[:,2], coords[:,:2] )
+"""
+# Same interpolation again, but not trying to round.
+# Having the two top-posted points should address this issue
+K_at_coords = griddata( RyzK[:,:2], RyzK[:,2], coords[:,:2] )
+# Now that we have set those boundary points, this isn't awesome, but isn't
+# terrible
 
 # Create a function within this function space
 # where the interpolated values will be placed
