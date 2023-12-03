@@ -263,7 +263,7 @@ f_y_interp = interp1d(s_perim, y_perim)
 f_z_interp = interp1d(s_perim, z_perim)
 
 # Boundary
-s_perim_values = np.linspace(0, np.max(s_perim), 41)
+s_perim_values = np.linspace(0, np.max(s_perim), 121)
 # Start the first and the last just below the boundary
 # div100 will keep the point in a valid area while not introducing
 # significant error into the stress calculation.
@@ -651,6 +651,51 @@ for contour_i in range(len(contours)):
     _yzK = np.hstack( (_yzinter[1:-1],
                         np.expand_dims(_K_eddy_visc, axis=1)) )
     yzK = np.vstack((yzK, _yzK))
+
+
+
+##########################################
+# UPDATE K BASED ON ABOVE WORKED EXAMPLE #
+##########################################
+
+
+
+
+
+# Coordinates in space
+coords = V.tabulate_dof_coordinates()
+
+# Interpolate
+K_at_coords = griddata( yzK[:,:2], yzK[:,2], coords[:,:2] )
+
+# Create a function within this function space
+# where the interpolated values will be placed
+K_eddy_viscosity = fem.Function(V)
+
+# And set its values
+# Coordinates are in dof-index order :D 
+K_eddy_viscosity.vector.setArray(K_at_coords)
+#print( K_eddy_viscosity.vector.getArray()[:5] )
+
+# Let's see what it looks like
+import pyvista
+topology, cell_types, geometry = plot.vtk_mesh(domain, tdim)
+grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
+
+u_topology, u_cell_types, u_geometry = plot.vtk_mesh(V)
+u_grid = pyvista.UnstructuredGrid(u_topology, u_cell_types, u_geometry)
+u_grid.point_data["u"] = K_eddy_viscosity.x.array.real
+u_grid.set_active_scalars("u")
+u_plotter = pyvista.Plotter()
+u_plotter.add_mesh(u_grid, show_edges=True)
+u_plotter.view_xy()
+u_plotter.show()
+############
+
+# Also look into
+#u2.vector.setValue() and family
+
+
 
 # We miss the top-most lines because we don't have areas on both sides
 # of these
