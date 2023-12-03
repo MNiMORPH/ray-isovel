@@ -450,6 +450,20 @@ for i in range(len(rays)):
 # WHEN I HAVE MORE THAN UST 1 POINT BETWEEN LEFT AND RIGHT
 base_paths = []
 base_path_interiors = []
+# Left
+i = 0
+_interior_vertices = (s_perim > s_perim_values[i]) \
+                     * (s_perim < s_perim_values[i+1])
+_left_yz = [ y_perim_values[i], z_perim_values[i] ]
+_interior_yz = [ np.array(y_perim)[_interior_vertices],
+                 np.array(z_perim)[_interior_vertices] ]
+_right_yz = [ y_perim_values[i+1], z_perim_values[i+1] ]
+_left_yz = np.array( _left_yz )
+_interior_yz = np.array( _interior_yz ).transpose()
+_right_yz = np.array( _right_yz )
+base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+base_path_interiors.append( _interior_yz )
+# Center
 for i in range(1, len(sl)-1):
     _interior_vertices = (s_perim > s_perim_values[i-1]) \
                          * (s_perim < s_perim_values[i+1])
@@ -462,6 +476,19 @@ for i in range(1, len(sl)-1):
     _right_yz = np.array( _right_yz )
     base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
     base_path_interiors.append( _interior_yz )
+# Right
+i = len(sl) - 1
+_interior_vertices = (s_perim > s_perim_values[i-1]) \
+                     * (s_perim < s_perim_values[i])
+_left_yz = [ y_perim_values[i-1], z_perim_values[i-1] ]
+_interior_yz = [ np.array(y_perim)[_interior_vertices],
+                 np.array(z_perim)[_interior_vertices] ]
+_right_yz = [ y_perim_values[i], z_perim_values[i] ]
+_left_yz = np.array( _left_yz )
+_interior_yz = np.array( _interior_yz ).transpose()
+_right_yz = np.array( _right_yz )
+base_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+base_path_interiors.append( _interior_yz )
 
 # Length of full rays, from boundary to free (water) surface
 # Not sure if this is really needed
@@ -484,9 +511,18 @@ base_path_lengths = np.array( base_path_lengths )
 
 # Area within the polygon
 flow_polygon_areas = []
-for i in range(len(base_paths)):
-    _polygon = np.vstack( [rays[i][::-1], base_path_interiors[i], rays[i+2]] )
+# Left
+i = 0
+_polygon = np.vstack( [rays[i][::-1], base_path_interiors[i], rays[i+1]] )
+flow_polygon_areas.append( Polygon( _polygon ).area )
+# Center
+for i in range(1, len(base_paths)-1):
+    _polygon = np.vstack( [rays[i-1][::-1], base_path_interiors[i], rays[i+1]] )
     flow_polygon_areas.append( Polygon( _polygon ).area )
+# Right
+_polygon = np.vstack( [rays[i-1][::-1], base_path_interiors[i], rays[i]] )
+flow_polygon_areas.append( Polygon( _polygon ).area )
+# Numpy-ify
 flow_polygon_areas = np.array( flow_polygon_areas )
 
 # Shear stress
@@ -500,10 +536,18 @@ u_star = (boundary_shear_stress / rho)**.5
 # Here just 0
 # Should I prop it up to molecular diffusivity?
 # Yes: otherwise div0
+"""
+# From when we used only interior polygons
 _K_eddy_visc = kappa * u_star * ray_path_lengths[1:-1]
+"""
+_K_eddy_visc = kappa * u_star * ray_path_lengths
 _K_eddy_visc += 1E-6
 
+"""
+# From when we used only interior polygons
 yzK = np.hstack( (_yzinter[1:-1], np.expand_dims(_K_eddy_visc, axis=1)) )
+"""
+yzK = np.hstack( (_yzinter, np.expand_dims(_K_eddy_visc, axis=1)) )
 
 # 
 #for i in range(len(base_paths)):
@@ -586,6 +630,25 @@ for contour_i in range(len(contours)):
 
     isovel_paths = []
     isovel_path_interiors = []
+    # Left path: take only the right side
+    i = 0
+    try:
+        _interior_vertices = ( isovel_points[:,0] > _yzinter[i][0] ) \
+                             * (isovel_points[:,0] < _yzinter[i+1][0] )
+        _left_yz = isovel_points[i]
+        _interior_yz = isovel_points[_interior_vertices]
+        _right_yz = isovel_points[i+1]
+        _left_yz = np.array( _left_yz )
+        _left_yz = np.expand_dims(_left_yz, axis=0)
+        _interior_yz = np.array( _interior_yz )
+        _right_yz = np.array( _right_yz )
+        _right_yz = np.expand_dims(_right_yz, axis=0)
+        isovel_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+        isovel_path_interiors.append( _interior_yz )
+    except:
+        isovel_paths.append( np.nan )
+        isovel_path_interiors.append( np.nan )
+    # Central paths
     for i in range(1, len(sl)-1):
         try:
             _interior_vertices = ( isovel_points[:,0] > _yzinter[i-1][0] ) \
@@ -603,6 +666,24 @@ for contour_i in range(len(contours)):
         except:
             isovel_paths.append( np.nan )
             isovel_path_interiors.append( np.nan )
+    # Right path: take only the left side
+    i = len(sl) - 1
+    try:
+        _interior_vertices = ( isovel_points[:,0] > _yzinter[i-i][0] ) \
+                             * (isovel_points[:,0] < _yzinter[i][0] )
+        _left_yz = isovel_points[i-1]
+        _interior_yz = isovel_points[_interior_vertices]
+        _right_yz = isovel_points[i]
+        _left_yz = np.array( _left_yz )
+        _left_yz = np.expand_dims(_left_yz, axis=0)
+        _interior_yz = np.array( _interior_yz )
+        _right_yz = np.array( _right_yz )
+        _right_yz = np.expand_dims(_right_yz, axis=0)
+        isovel_paths.append( np.vstack( [_left_yz, _interior_yz, _right_yz] ) )
+        isovel_path_interiors.append( _interior_yz )
+    except:
+        isovel_paths.append( np.nan )
+        isovel_path_interiors.append( np.nan )
 
     # Path lengths
     # Ray
@@ -637,7 +718,11 @@ for contour_i in range(len(contours)):
     intermediate_shear_stress = rho * g * S \
                                   * flow_polygon_areas / isovel_path_lengths
 
+    """
+    When I did not have defined stresses for the
+    
     # Eddy viscosity
+    # first and last points
     _K_eddy_visc = kappa * u_star * ray_path_lengths[1:-1] \
                            * intermediate_shear_stress / boundary_shear_stress
     _K_eddy_visc[ ray_path_lengths[1:-1] > 0.2*ray_lengths[1:-1] ] = K_eddy_viscosity_0
@@ -649,6 +734,21 @@ for contour_i in range(len(contours)):
     #_K_eddy_visc += 1E-6
 
     _yzK = np.hstack( (_yzinter[1:-1],
+                        np.expand_dims(_K_eddy_visc, axis=1)) )
+    yzK = np.vstack((yzK, _yzK))
+    """
+    # Eddy viscosity
+    _K_eddy_visc = kappa * u_star * ray_path_lengths \
+                           * intermediate_shear_stress / boundary_shear_stress
+    _K_eddy_visc[ ray_path_lengths > 0.2*ray_lengths ] = K_eddy_viscosity_0
+    _K_eddy_visc[ _K_eddy_visc > K_eddy_viscosity_0 ] = K_eddy_viscosity_0
+    # Here just 0
+    # Should I prop it up to molecular diffusivity?
+    # Yes: otherwise div0
+    # Try without when off boundaries; are diffusivities additive?
+    #_K_eddy_visc += 1E-6
+
+    _yzK = np.hstack( (_yzinter,
                         np.expand_dims(_K_eddy_visc, axis=1)) )
     yzK = np.vstack((yzK, _yzK))
 
