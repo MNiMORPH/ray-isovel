@@ -240,10 +240,11 @@ dudy_ext = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
 #umid = (urast_ext[:-1,:-1] + urast_ext[1:,1:])/2.
 
 
-plt.figure( figsize=(16,2.5) )
+plt.figure( figsize=(16,4) )
 # Extents from other code
 plt.imshow(urast, extent=(ymin-dy2, ymax+dy2, zmax+dz2, zmin-dz2))
-plt.colorbar( label = 'Flow velocity [m s$^{-1}$]')
+plt.colorbar( label = 'Flow velocity [m s$^{-1}$]', orientation='horizontal',
+              aspect=40, shrink = 0.5)
 plt.ylim(plt.ylim()[::-1])
 plt.xlim((ymin,ymax))
 plt.ylim((zmin,zmax)) # Comment to check: there is a ray on each side at z=1
@@ -347,8 +348,8 @@ for _level in np.linspace( np.min(urast_ext) \
         plt.plot(contour[:, 1], contour[:, 0], linewidth=2, color='.7')
 
 
-plt.xlabel('Lateral distance from channel center [m]')
-plt.ylabel('Elevation above bed [m]')
+plt.xlabel('Lateral distance from channel center [m]', fontsize=18)
+plt.ylabel('Elevation\nabove bed [m]', fontsize=18)
 
 
 plt.tight_layout()
@@ -587,11 +588,11 @@ plt.plot( y_perim_values[1:-1],
 # Plot rays
 """
 for _sl in sl:
-    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='0.')
+    plt.plot(_sl[:,0], _sl[:,1], linewidth=2, color='1.')
 """
 #for ray in rays_to_middle:
 for ray in rays:
-    plt.plot(ray[:,0], ray[:,1], linewidth=2, color='0.')
+    plt.plot(ray[:,0], ray[:,1], linewidth=2, color='1.')
 
 
 # Loop over contours
@@ -836,6 +837,7 @@ K_eddy_viscosity = fem.Function(V)
 K_eddy_viscosity.vector.setArray(K_at_coords)
 #print( K_eddy_viscosity.vector.getArray()[:5] )
 
+"""
 # Let's see what it looks like
 import pyvista
 topology, cell_types, geometry = plot.vtk_mesh(domain, tdim)
@@ -850,12 +852,14 @@ u_plotter.add_mesh(u_grid, show_edges=True)
 u_plotter.view_xy()
 u_plotter.show()
 ############
+"""
 
 # Also look into
 #u2.vector.setValue() and family
 
 
 
+"""
 # We miss the top-most lines because we don't have areas on both sides
 # of these
 plt.figure( figsize=(16,2.5) )
@@ -866,6 +870,7 @@ plt.ylim(plt.ylim()[::-1])
 plt.xlim((ymin,ymax))
 plt.ylim((zmin,zmax)) # Comment to check: there is a ray on each side at z=1
 plt.tight_layout()
+"""
 
 # NEXT STEPS: ITERATE OVER ALL ISOVELS, THEN SOLVE FOR K
 
@@ -875,5 +880,8 @@ plt.tight_layout()
 
 
 
+plt.savefig('RayIsovelAndy_20231203.svg')
+
 plt.show()
+
 
