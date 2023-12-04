@@ -43,8 +43,8 @@ gmsh.model.occ.synchronize()
 
 # FEniCSx help for creating a mesh
 gdim = 2 # I think this is the number of dimensions
-gmsh.option.setNumber("Mesh.CharacteristicLengthMin", 0.1)
-gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 0.3)
+gmsh.option.setNumber("Mesh.CharacteristicLengthMin", 0.03)
+gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 0.1)
 gmsh.model.mesh.generate(gdim)
 
 if '-nopopup' not in sys.argv:
