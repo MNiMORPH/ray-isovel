@@ -12,6 +12,7 @@ from scipy.interpolate import griddata, interp1d
 
 import sys
 
+from cmcrameri import cm
 
 # Minimum eddy viscosity
 _K_eddy_visc_min = 1E-6 # Molecular
@@ -242,7 +243,8 @@ dudy_ext = np.diff( (urast_ext[:-1,:] + urast_ext[1:,:]) / 2., axis=1)
 
 plt.figure( figsize=(16,4) )
 # Extents from other code
-plt.imshow(urast, extent=(ymin-dy2, ymax+dy2, zmax+dz2, zmin-dz2))
+plt.imshow( urast, extent=(ymin-dy2, ymax+dy2, zmax+dz2, zmin-dz2),
+            cmap=cm.navia.reversed())
 plt.colorbar( label = 'Flow velocity [m s$^{-1}$]', orientation='horizontal',
               aspect=40, shrink = 0.5)
 plt.ylim(plt.ylim()[::-1])
